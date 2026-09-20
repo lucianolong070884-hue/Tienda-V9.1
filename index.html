@@ -22,7 +22,7 @@ table{width:100%;border-collapse:collapse;background:white}th,td{padding:9px;bor
 <div class="toolbar" style="margin-top:10px"><button class="action" onclick="login()">Entrar</button><button class="action light" onclick="signup()">Crear usuario</button></div>
 <div id="loginMsg" class="notice hidden"></div></div></div>
 
-<header><h1>🛒 Tienda V12</h1><small id="status">Sin conexión</small></header>
+<header><h1>🛒 Tienda V13.1</h1><small id="status">Sin conexión</small></header>
 <nav id="nav"><button data-page="inicio">Inicio</button><button data-page="precios">Precios</button><button data-page="inventario">Inventario</button><button data-page="compras">Compras</button><button data-page="ventas">Ventas</button><button data-page="clientes">Clientes</button><button data-page="cuentas">Estado de cuenta</button><button data-page="proveedores">Proveedores</button><button onclick="logout()">Salir</button></nav>
 <main>
 <section id="inicio" class="page active"><div class="grid"><div class="card"><div class="muted">Productos</div><div id="kProducts" class="kpi">0</div></div><div class="card"><div class="muted">Existencias</div><div id="kStock" class="kpi">0</div></div><div class="card"><div class="muted">Ventas</div><div id="kSales" class="kpi">$0.00</div></div><div class="card"><div class="muted">Por cobrar</div><div id="kCredit" class="kpi">$0.00</div></div></div>
@@ -87,6 +87,19 @@ async function renderClients(){if(!sb)return;let {data}=await sb.from('account_b
 async function renderAccounts(){if(!sb)return;let {data}=await sb.from('account_balances').select('*').order('nombre');let q=$('qA')?.value||'';if(q)data=(data||[]).filter(c=>(c.numero+' '+c.nombre).toLowerCase().includes(q.toLowerCase()));$('accountsBody').innerHTML=(data||[]).map(c=>`<tr><td>${c.nombre}</td><td>${money(c.credit)}</td><td>${money(c.paid)}</td><td>${money(c.balance)}</td><td><button class="action" onclick="viewAccount('${c.id}')">Ver</button> <button class="action light" onclick="openPayFor('${c.id}','${c.nombre.replace(/'/g,"\\'")}')">Abono</button></td></tr>`).join('');}
 async function renderSuppliers(){if(!sb)return;let {data}=await sb.from('suppliers').select('*').eq('activo',true).order('numero');let q=$('qS')?.value||'';if(q)data=(data||[]).filter(s=>(s.numero+' '+s.nombre).toLowerCase().includes(q.toLowerCase()));$('suppliersBody').innerHTML=(data||[]).map(s=>`<tr><td>${s.numero}</td><td>${s.nombre}</td><td><button class="action light" onclick="editSupplier('${s.id}')">Editar</button></td></tr>`).join('');}
 async function viewAccount(id){currentClient=id;go('detail');let c=(await sb.from('clients').select('*').eq('id',id).single()).data;$('detailTitle').textContent='Estado de cuenta — '+c.nombre;let {data:rows}=await sb.from('sales').select('id,fecha,total,sale_items(cantidad,precio,products(descripcion))').eq('client_id',id).eq('tipo','Crédito').order('fecha',{ascending:true});let {data:pay}=await sb.from('payments').select('*').eq('client_id',id).order('fecha',{ascending:true});let cr=(rows||[]).reduce((x,s)=>x+Number(s.total),0),pd=(pay||[]).reduce((x,p)=>x+Number(p.monto),0);$('dCredit').textContent=money(cr);$('dPaid').textContent=money(pd);$('dBalance').textContent=money(Math.max(0,cr-pd));let today=new Date();today.setHours(0,0,0,0);let out=[];(rows||[]).forEach(s=>{let sd=new Date(s.fecha+'T00:00:00');let days=Math.max(0,Math.floor((today-sd)/86400000));out.push(`<tr><td>${s.fecha}</td><td>${days}</td><td>Compra</td><td>${s.sale_items?.[0]?.products?.descripcion||''} × ${s.sale_items?.[0]?.cantidad||0}</td><td>${money(s.total)}</td><td><button class="action light" onclick="editSale('${s.id}')">Editar</button> <button class="action danger" onclick="deleteSale('${s.id}')">Eliminar</button></td></tr>`)});(pay||[]).forEach(p=>out.push(`<tr><td>${p.fecha}</td><td>—</td><td>Abono</td><td>${p.nota||''}</td><td>-${money(p.monto)}</td><td></td></tr>`));$('detailBody').innerHTML=out.join('')||'<tr><td colspan="6">Sin movimientos</td></tr>';$("payClientName").textContent='Cliente: '+c.nombre+' · Saldo: '+money(Math.max(0,cr-pd));}
+
+async function openKardex(productId,descripcion){
+  if(!sb)return;
+  $('kardexTitle').textContent='Kardex — '+(descripcion||'Producto');
+  $('kardexBody').innerHTML='<tr><td colspan="7">Cargando...</td></tr>';
+  $('kardexModal').style.display='flex';
+  const {data,error}=await sb.rpc('product_kardex',{p_product_id:productId});
+  if(error){$('kardexBody').innerHTML='<tr><td colspan="7">Error: '+String(error.message).replace(/</g,'&lt;')+'</td></tr>';return;}
+  const rows=data||[];
+  if(!rows.length){$('kardexBody').innerHTML='<tr><td colspan="7">Sin movimientos</td></tr>';return;}
+  $('kardexBody').innerHTML=rows.map(r=>`<tr><td>${r.fecha||''}</td><td><span class="kardex-badge">${r.movimiento||''}</span></td><td>${r.referencia||''}</td><td>${Number(r.entrada||0).toLocaleString('es-MX')}</td><td>${Number(r.salida||0).toLocaleString('es-MX')}</td><td>${r.costo==null?'—':money(r.costo)}</td><td><strong>${Number(r.existencia||0).toLocaleString('es-MX')}</strong></td></tr>`).join('');
+}
+function closeKardex(){$('kardexModal').style.display='none';}
 
 async function newProduct(){openForm('Nuevo producto',[['numero','Número'],['descripcion','Descripción'],['costo','Costo','number'],['precio','Precio','number']],'product');}
 async function editProduct(id){let {data:p}=await sb.from('products').select('*').eq('id',id).single();openForm('Editar producto',[['numero','Número',null,p.numero],['descripcion','Descripción',null,p.descripcion],['costo','Costo','number',p.costo],['precio','Precio','number',p.precio]],'product',id);}
