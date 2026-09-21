@@ -14,7 +14,7 @@ table{width:100%;border-collapse:collapse;background:white}th,td{padding:9px;bor
 #login{position:fixed;inset:0;background:#f3f4f6;z-index:30;display:flex;align-items:center;justify-content:center;padding:18px}.loginbox{background:white;padding:22px;border-radius:18px;width:min(430px,100%);box-shadow:0 10px 40px #0002}.hidden{display:none!important}
 .sale-head{display:grid;grid-template-columns:minmax(220px,1fr) 110px 140px 42px;gap:8px;padding:0 10px 6px;font-size:12px;font-weight:700;color:#6b7280}.sale-line{display:grid;grid-template-columns:minmax(220px,1fr) 110px 140px 42px;gap:8px;align-items:center;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;margin-bottom:8px;background:#fafafa}.sale-line input,.sale-line select{width:100%}.sale-total{text-align:right;font-size:21px;font-weight:800;margin:14px 0}@media(max-width:700px){.sale-head{grid-template-columns:1fr 90px 120px 40px}.sale-line{grid-template-columns:1fr 90px 120px 40px}}.price-cell{display:flex;gap:5px}.price-cell .sale-price{min-width:0;flex:1}.price-btn{padding:9px 8px;font-size:12px}.purchase-total{font-weight:800}.purchase-kpis .card{margin:0}.purchase-kpis{grid-template-columns:repeat(2,minmax(150px,1fr))}@media(max-width:700px){.purchase-kpis{grid-template-columns:1fr}}@media(max-width:700px){.price-cell{flex-direction:column}.price-btn{width:100%}}.kardex-badge{font-size:12px;padding:4px 7px;border-radius:999px;background:#eef2f7}.kardex-entry{font-weight:700}.kardex-exit{font-weight:700}@media(max-width:700px){.tablewrap{overflow-x:auto}} </style><meta name="tienda-build" content="V13.3.1-KARDEX-FIX">
 </head><body>
-<div id="login"><div class="loginbox"><h2>🛒 Tienda V13.3.1 — Kardex</h2><p class="muted">Base de datos central en Supabase</p>
+<div id="login"><div class="loginbox"><h2>🛒 Tienda V13.4.1 — Kardex</h2><p class="muted">Base de datos central en Supabase</p>
 <div id="cfgNotice" class="notice">Primero configura la URL y la clave publicable de tu proyecto Supabase.</div>
 <label>Supabase URL</label><input id="cfgUrl" placeholder="https://xxxxx.supabase.co">
 <label style="display:block;margin-top:8px">Publishable key</label><input id="cfgKey" placeholder="sb_publishable_..." type="password">
@@ -90,16 +90,89 @@ async function renderSuppliers(){if(!sb)return;let {data}=await sb.from('supplie
 async function viewAccount(id){currentClient=id;go('detail');let c=(await sb.from('clients').select('*').eq('id',id).single()).data;$('detailTitle').textContent='Estado de cuenta — '+c.nombre;let {data:rows}=await sb.from('sales').select('id,fecha,total,sale_items(cantidad,precio,products(descripcion))').eq('client_id',id).eq('tipo','Crédito').order('fecha',{ascending:true});let {data:pay}=await sb.from('payments').select('*').eq('client_id',id).order('fecha',{ascending:true});let cr=(rows||[]).reduce((x,s)=>x+Number(s.total),0),pd=(pay||[]).reduce((x,p)=>x+Number(p.monto),0);$('dCredit').textContent=money(cr);$('dPaid').textContent=money(pd);$('dBalance').textContent=money(Math.max(0,cr-pd));let today=new Date();today.setHours(0,0,0,0);let out=[];(rows||[]).forEach(s=>{let sd=new Date(s.fecha+'T00:00:00');let days=Math.max(0,Math.floor((today-sd)/86400000));out.push(`<tr><td>${s.fecha}</td><td>${days}</td><td>Compra</td><td>${s.sale_items?.[0]?.products?.descripcion||''} × ${s.sale_items?.[0]?.cantidad||0}</td><td>${money(s.total)}</td><td><button class="action light" onclick="editSale('${s.id}')">Editar</button> <button class="action danger" onclick="deleteSale('${s.id}')">Eliminar</button></td></tr>`)});(pay||[]).forEach(p=>out.push(`<tr><td>${p.fecha}</td><td>—</td><td>Abono</td><td>${p.nota||''}</td><td>-${money(p.monto)}</td><td></td></tr>`));$('detailBody').innerHTML=out.join('')||'<tr><td colspan="6">Sin movimientos</td></tr>';$("payClientName").textContent='Cliente: '+c.nombre+' · Saldo: '+money(Math.max(0,cr-pd));}
 
 async function openKardex(productId,descripcion){
-  if(!sb)return;
   $('kardexTitle').textContent='Kardex — '+(descripcion||'Producto');
   $('kardexBody').innerHTML='<tr><td colspan="7">Cargando...</td></tr>';
   $('kardexModal').style.display='flex';
-  const {data,error}=await sb.rpc('product_kardex',{p_product_id:productId});
-  if(error){$('kardexBody').innerHTML='<tr><td colspan="7">Error: '+String(error.message).replace(/</g,'&lt;')+'</td></tr>';return;}
-  let rows=data||[];
-  rows=rows.filter(r=>String(r.movimiento||'').toLowerCase()!=='existencia inicial' && String(r.movimiento||'').toLowerCase()!=='saldo inicial');
-  if(!rows.length){$('kardexBody').innerHTML='<tr><td colspan="7">Sin movimientos</td></tr>';return;}
-  $('kardexBody').innerHTML=rows.map(r=>`<tr><td>${r.fecha||''}</td><td><span class="kardex-badge">${r.movimiento||''}</span></td><td>${r.referencia||''}</td><td>${Number(r.entrada||0).toLocaleString('es-MX')}</td><td>${Number(r.salida||0).toLocaleString('es-MX')}</td><td>${r.costo==null?'—':money(r.costo)}</td><td><strong>${Number(r.existencia||0).toLocaleString('es-MX')}</strong></td></tr>`).join('');
+
+  try{
+    if(!sb){
+      $('kardexBody').innerHTML='<tr><td colspan="7">Sin conexión con Supabase.</td></tr>';
+      return;
+    }
+
+    // Leer existencia actual y movimientos directamente de las tablas.
+    // Así el Kardex no depende de la RPC product_kardex.
+    const invReq=await sb.from('inventory').select('existencia').eq('product_id',productId).maybeSingle();
+    if(invReq.error) throw invReq.error;
+
+    const [pReq,sReq]=await Promise.all([
+      sb.from('purchase_items')
+        .select('purchase_id, cantidad, costo, purchases(id, fecha)')
+        .eq('product_id',productId),
+      sb.from('sale_items')
+        .select('sale_id, cantidad, costo, sales(id, fecha)')
+        .eq('product_id',productId)
+    ]);
+
+    if(pReq.error) throw pReq.error;
+    if(sReq.error) throw sReq.error;
+
+    const movements=[];
+
+    (pReq.data||[]).forEach(x=>{
+      const fecha=x.purchases?.fecha||'';
+      movements.push({
+        fecha,
+        ts: Date.parse(fecha||'1970-01-01'),
+        movimiento:'Compra',
+        referencia:'Compra '+fecha,
+        entrada:Number(x.cantidad||0),
+        salida:0,
+        costo:x.costo==null?null:Number(x.costo)
+      });
+    });
+
+    (sReq.data||[]).forEach(x=>{
+      const fecha=x.sales?.fecha||'';
+      movements.push({
+        fecha,
+        ts: Date.parse(fecha||'1970-01-01'),
+        movimiento:'Venta',
+        referencia:'Venta '+fecha,
+        entrada:0,
+        salida:Number(x.cantidad||0),
+        costo:x.costo==null?null:Number(x.costo)
+      });
+    });
+
+    // Solo movimientos reales y en orden cronológico.
+    movements.sort((a,b)=>a.ts-b.ts || a.movimiento.localeCompare(b.movimiento));
+
+    if(!movements.length){
+      $('kardexBody').innerHTML='<tr><td colspan="7">Sin movimientos de compras o ventas.</td></tr>';
+      return;
+    }
+
+    const existenciaActual=Number(invReq.data?.existencia||0);
+    const entradas=movements.reduce((s,m)=>s+m.entrada,0);
+    const salidas=movements.reduce((s,m)=>s+m.salida,0);
+    let saldo=existenciaActual-entradas+salidas;
+
+    $('kardexBody').innerHTML=movements.map(m=>{
+      saldo += m.entrada-m.salida;
+      return `<tr>
+        <td>${m.fecha}</td>
+        <td><span class="kardex-badge">${m.movimiento}</span></td>
+        <td>${m.referencia}</td>
+        <td>${m.entrada?m.entrada.toLocaleString('es-MX'):''}</td>
+        <td>${m.salida?m.salida.toLocaleString('es-MX'):''}</td>
+        <td>${m.costo==null?'—':money(m.costo)}</td>
+        <td><strong>${saldo.toLocaleString('es-MX')}</strong></td>
+      </tr>`;
+    }).join('');
+  }catch(e){
+    $('kardexBody').innerHTML='<tr><td colspan="7">Error al cargar Kardex: '+String(e?.message||e).replace(/</g,'&lt;')+'</td></tr>';
+  }
 }
 function closeKardex(){$('kardexModal').style.display='none';}
 
@@ -199,96 +272,6 @@ async function savePay(){let a=Number($('payAmount').value);if(a<=0)return alert
 document.querySelectorAll('#nav button[data-page]').forEach(b=>b.onclick=()=>go(b.dataset.page));
 if(cfg){$('cfgUrl').value=cfg.url;$('cfgKey').value=cfg.key;initSupabase();}
 </script>
-<script>
-/* V13.2 - Kardex robust opener */
-window.openKardexV132 = async function(productId, productName) {
-  try {
-    const existing = document.getElementById('kardexModalV132');
-    if (existing) existing.remove();
 
-    const modal = document.createElement('div');
-    modal.id = 'kardexModalV132';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;';
-    modal.innerHTML = `
-      <div style="background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:90vh;overflow:auto;padding:18px;box-shadow:0 12px 40px rgba(0,0,0,.25)">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <div>
-            <h2 style="margin:0">📋 Kardex</h2>
-            <div style="font-weight:700;margin-top:4px">${productName || ''}</div>
-          </div>
-          <button id="closeKardexV132" style="font-size:22px;border:0;background:transparent;cursor:pointer">✕</button>
-        </div>
-        <div id="kardexStatusV132" style="margin:14px 0;padding:10px;border-radius:8px;background:#f3f4f6">Cargando movimientos...</div>
-        <div style="overflow:auto">
-          <table style="width:100%;border-collapse:collapse">
-            <thead>
-              <tr>
-                <th style="text-align:left;padding:8px;border-bottom:1px solid #ddd">Fecha</th>
-                <th style="text-align:left;padding:8px;border-bottom:1px solid #ddd">Movimiento</th>
-                <th style="text-align:left;padding:8px;border-bottom:1px solid #ddd">Referencia</th>
-                <th style="text-align:right;padding:8px;border-bottom:1px solid #ddd">Entrada</th>
-                <th style="text-align:right;padding:8px;border-bottom:1px solid #ddd">Salida</th>
-                <th style="text-align:right;padding:8px;border-bottom:1px solid #ddd">Existencia</th>
-              </tr>
-            </thead>
-            <tbody id="kardexBodyV132"></tbody>
-          </table>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-    document.getElementById('closeKardexV132').onclick = () => modal.remove();
-
-    const status = document.getElementById('kardexStatusV132');
-    const body = document.getElementById('kardexBodyV132');
-
-    // Prefer the existing app's Supabase client if available.
-    const client = window.supabaseClient || window.sb || window.supabase;
-    if (!client || !productId) {
-      status.textContent = 'No se pudo acceder al cliente de Supabase. El Kardex está abierto, pero falta la conexión.';
-      return;
-    }
-
-    // Try the V13 RPC first.
-    let rows = [];
-    let rpcError = null;
-    try {
-      const r = await client.rpc('product_kardex', { p_product_id: productId });
-      if (!r.error && Array.isArray(r.data)) rows = r.data;
-      else rpcError = r.error;
-    } catch(e) { rpcError = e; }
-
-    rows = rows.filter(x => { const m=String(x.movimiento||x.tipo||'').toLowerCase(); return m!=='existencia inicial' && m!=='saldo inicial'; });
-    if (!rows.length) {
-      status.textContent = rpcError
-        ? 'No se pudieron cargar los movimientos desde Supabase. El Kardex se abrió correctamente.'
-        : 'No hay movimientos de compras o ventas registrados para este producto.';
-      return;
-    }
-
-    let balance = 0;
-    body.innerHTML = rows.map(x => {
-      const entrada = Number(x.entrada || x.cantidad_entrada || 0);
-      const salida = Number(x.salida || x.cantidad_salida || 0);
-      balance += entrada - salida;
-      const fecha = x.fecha || x.created_at || '';
-      const movimiento = x.movimiento || x.tipo || '';
-      const referencia = x.referencia || '';
-      const existencia = x.existencia ?? balance;
-      return `<tr>
-        <td style="padding:8px;border-bottom:1px solid #eee">${fecha}</td>
-        <td style="padding:8px;border-bottom:1px solid #eee">${movimiento}</td>
-        <td style="padding:8px;border-bottom:1px solid #eee">${referencia}</td>
-        <td style="padding:8px;text-align:right;border-bottom:1px solid #eee">${entrada || ''}</td>
-        <td style="padding:8px;text-align:right;border-bottom:1px solid #eee">${salida || ''}</td>
-        <td style="padding:8px;text-align:right;border-bottom:1px solid #eee">${existencia}</td>
-      </tr>`;
-    }).join('');
-    status.textContent = `${rows.length} movimiento(s) encontrado(s).`;
-  } catch (e) {
-    const m = document.getElementById('kardexStatusV132');
-    if (m) m.textContent = 'Error al abrir el Kardex: ' + (e?.message || e);
-  }
-};
-</script>
 
 </body></html>
