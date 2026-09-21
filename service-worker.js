@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tienda-v13-2-1-recovery';
+const CACHE_NAME = 'tienda-v13-3-kardex';
 const APP_ASSETS = ['./', './index.html'];
 
 self.addEventListener('install', event => {
