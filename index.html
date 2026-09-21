@@ -1,7 +1,7 @@
 <!doctype html><html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#111827"><link rel="manifest" href="manifest.json">
-<title>Tienda V14 — Kardex</title>
+<title>Tienda V15 — Kardex</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f3f4f6;color:#111827}
 header{background:#111827;color:white;padding:16px 18px;position:sticky;top:0;z-index:5}header h1{margin:0;font-size:21px}header small{opacity:.75}
@@ -14,7 +14,7 @@ table{width:100%;border-collapse:collapse;background:white}th,td{padding:9px;bor
 #login{position:fixed;inset:0;background:#f3f4f6;z-index:30;display:flex;align-items:center;justify-content:center;padding:18px}.loginbox{background:white;padding:22px;border-radius:18px;width:min(430px,100%);box-shadow:0 10px 40px #0002}.hidden{display:none!important}
 .sale-head{display:grid;grid-template-columns:minmax(220px,1fr) 110px 140px 42px;gap:8px;padding:0 10px 6px;font-size:12px;font-weight:700;color:#6b7280}.sale-line{display:grid;grid-template-columns:minmax(220px,1fr) 110px 140px 42px;gap:8px;align-items:center;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;margin-bottom:8px;background:#fafafa}.sale-line input,.sale-line select{width:100%}.sale-total{text-align:right;font-size:21px;font-weight:800;margin:14px 0}@media(max-width:700px){.sale-head{grid-template-columns:1fr 90px 120px 40px}.sale-line{grid-template-columns:1fr 90px 120px 40px}}.price-cell{display:flex;gap:5px}.price-cell .sale-price{min-width:0;flex:1}.price-btn{padding:9px 8px;font-size:12px}.purchase-total{font-weight:800}.purchase-kpis .card{margin:0}.purchase-kpis{grid-template-columns:repeat(2,minmax(150px,1fr))}@media(max-width:700px){.purchase-kpis{grid-template-columns:1fr}}@media(max-width:700px){.price-cell{flex-direction:column}.price-btn{width:100%}}.kardex-badge{font-size:12px;padding:4px 7px;border-radius:999px;background:#eef2f7}.kardex-entry{font-weight:700}.kardex-exit{font-weight:700}@media(max-width:700px){.tablewrap{overflow-x:auto}} </style><meta name="tienda-build" content="V14-DASHBOARD">
 </head><body>
-<div id="login"><div class="loginbox"><h2>🛒 Tienda V14.1 — Kardex</h2><p class="muted">Base de datos central en Supabase</p>
+<div id="login"><div class="loginbox"><h2>🛒 Tienda V15 — Kardex</h2><p class="muted">Base de datos central en Supabase</p>
 <div id="cfgNotice" class="notice">Primero configura la URL y la clave publicable de tu proyecto Supabase.</div>
 <label>Supabase URL</label><input id="cfgUrl" placeholder="https://xxxxx.supabase.co">
 <label style="display:block;margin-top:8px">Publishable key</label><input id="cfgKey" placeholder="sb_publishable_..." type="password">
@@ -36,6 +36,16 @@ table{width:100%;border-collapse:collapse;background:white}th,td{padding:9px;bor
 <div class="card"><div class="muted">Utilidad acumulada</div><div id="kProfit" class="kpi">$0.00</div><div class="muted">Utilidad bruta</div></div>
 <div class="card"><div class="muted">Por cobrar</div><div id="kCredit" class="kpi">$0.00</div></div>
 </div>
+<div class="card" id="dashboardV15"><h3>Dashboard de ventas</h3>
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">
+<label style="min-width:150px">Periodo<select id="dashPeriod" onchange="renderDashboardV15()"><option value="today">Hoy</option><option value="week">Esta semana</option><option value="month" selected>Este mes</option><option value="all">Acumulado</option><option value="custom">Personalizado</option></select></label>
+<label id="dashFromWrap" style="display:none;min-width:150px">Desde<input type="date" id="dashFrom" onchange="renderDashboardV15()"></label>
+<label id="dashToWrap" style="display:none;min-width:150px">Hasta<input type="date" id="dashTo" onchange="renderDashboardV15()"></label>
+<button class="action light" onclick="renderDashboardV15()">🔄 Actualizar</button></div>
+<div class="grid" style="margin-top:14px"><div class="card"><div class="muted">Ventas del periodo</div><div id="d15Sales" class="kpi">$0.00</div></div><div class="card"><div class="muted">Utilidad del periodo</div><div id="d15Profit" class="kpi">$0.00</div></div><div class="card"><div class="muted">No. de ventas</div><div id="d15Count" class="kpi">0</div></div><div class="card"><div class="muted">Ticket promedio</div><div id="d15Ticket" class="kpi">$0.00</div></div></div>
+<div style="margin-top:14px;overflow:auto"><h4>Ventas y utilidad por día</h4><table><thead><tr><th>Fecha</th><th>Ventas</th><th>Utilidad</th></tr></thead><tbody id="d15Daily"></tbody></table></div>
+<div style="margin-top:14px;overflow:auto"><h4>Productos más vendidos</h4><table><thead><tr><th>Producto</th><th>Unidades</th><th>Ventas</th><th>Utilidad</th></tr></thead><tbody id="d15Products"></tbody></table></div>
+<div style="margin-top:14px;overflow:auto"><h4>Ventas por tipo</h4><table><thead><tr><th>Tipo</th><th>Ventas</th><th>Importe</th></tr></thead><tbody id="d15Types"></tbody></table></div></div>
 <div class="card"><h3>Resumen de ventas y utilidad</h3>
 <p class="muted">Las ventas acumuladas y la utilidad se calculan con todas las ventas registradas. La utilidad es bruta: venta menos costo del producto.</p>
 <button class="action light" onclick="refreshAll()">🔄 Actualizar</button></div>
@@ -72,6 +82,7 @@ function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove(
 async function refreshAll(){
   if(!sb)return;
   await Promise.all([renderProducts(),renderInventory(),renderPurchases(),renderSales(),renderClients(),renderAccounts(),renderSuppliers()]);
+  await renderDashboardV15();
   const [p,i,s,a]=await Promise.all([
     sb.from('products').select('id').eq('activo',true),
     sb.from('inventory').select('existencia'),
@@ -326,4 +337,18 @@ if(cfg){$('cfgUrl').value=cfg.url;$('cfgKey').value=cfg.key;initSupabase();}
 </script>
 
 
+<script>
+async function renderDashboardV15(){
+ if(!sb)return; const period=$('dashPeriod')?.value||'month'; const fw=$('dashFromWrap'),tw=$('dashToWrap'); if(fw)fw.style.display=period==='custom'?'block':'none';if(tw)tw.style.display=period==='custom'?'block':'none';
+ const {data:sales,error}=await sb.from('sales').select('id,fecha,tipo,total,sale_items(product_id,cantidad,precio,costo,products(descripcion))').order('fecha',{ascending:true}); if(error){console.error(error);return;}
+ const now=new Date(),iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); let from=null,to=null;
+ if(period==='today')from=to=iso(now); else if(period==='week'){const d=new Date(now),day=d.getDay(),diff=(day+6)%7;d.setDate(d.getDate()-diff);from=iso(d);to=iso(now);} else if(period==='month'){from=iso(new Date(now.getFullYear(),now.getMonth(),1));to=iso(now);} else if(period==='custom'){from=$('dashFrom')?.value||'';to=$('dashTo')?.value||'';}
+ const filtered=(sales||[]).filter(s=>period==='all'||(from&&to&&s.fecha>=from&&s.fecha<=to)); let total=0,profit=0;const byDay={},byProduct={},byType={};
+ filtered.forEach(s=>{const amount=Number(s.total||0);total+=amount;byDay[s.fecha]??={sales:0,profit:0};byDay[s.fecha].sales+=amount;const t=s.tipo||'Sin tipo';byType[t]??={count:0,total:0};byType[t].count++;byType[t].total+=amount;(s.sale_items||[]).forEach(i=>{const q=Number(i.cantidad||0),p=Number(i.precio||0),c=Number(i.costo||0),pr=(p-c)*q;profit+=pr;byDay[s.fecha].profit+=pr;const k=i.product_id;byProduct[k]??={name:i.products?.descripcion||'Producto',qty:0,sales:0,profit:0};byProduct[k].qty+=q;byProduct[k].sales+=p*q;byProduct[k].profit+=pr;});});
+ $('d15Sales').textContent=money(total);$('d15Profit').textContent=money(profit);$('d15Count').textContent=filtered.length;$('d15Ticket').textContent=money(filtered.length?total/filtered.length:0);
+ const daily=Object.entries(byDay).sort();$('d15Daily').innerHTML=daily.length?daily.map(([d,v])=>`<tr><td>${d}</td><td>${money(v.sales)}</td><td>${money(v.profit)}</td></tr>`).join(''):'<tr><td colspan="3">Sin ventas en el periodo</td></tr>';
+ const prods=Object.values(byProduct).sort((a,b)=>b.sales-a.sales);$('d15Products').innerHTML=prods.length?prods.map(v=>`<tr><td>${v.name}</td><td>${v.qty}</td><td>${money(v.sales)}</td><td>${money(v.profit)}</td></tr>`).join(''):'<tr><td colspan="4">Sin ventas en el periodo</td></tr>';
+ const types=Object.entries(byType).sort((a,b)=>b[1].total-a[1].total);$('d15Types').innerHTML=types.length?types.map(([k,v])=>`<tr><td>${k}</td><td>${v.count}</td><td>${money(v.total)}</td></tr>`).join(''):'<tr><td colspan="3">Sin ventas en el periodo</td></tr>';
+}
+</script>
 </body></html>
