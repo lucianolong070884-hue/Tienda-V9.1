@@ -1,7 +1,7 @@
 <!doctype html><html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#111827"><link rel="manifest" href="manifest.json">
-<title>Tienda V13.2 — Kardex</title>
+<title>Tienda V14 — Kardex</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f3f4f6;color:#111827}
 header{background:#111827;color:white;padding:16px 18px;position:sticky;top:0;z-index:5}header h1{margin:0;font-size:21px}header small{opacity:.75}
@@ -12,9 +12,9 @@ input,select{padding:10px;border:1px solid #d1d5db;border-radius:9px;background:
 table{width:100%;border-collapse:collapse;background:white}th,td{padding:9px;border-bottom:1px solid #eee;text-align:left;font-size:14px}.tablewrap{overflow:auto}.badge{padding:4px 8px;border-radius:99px;background:#dcfce7}.warn{background:#fef3c7}.bad{background:#fee2e2}
 .modal{display:none;position:fixed;inset:0;background:#0008;z-index:20;align-items:center;justify-content:center;padding:15px}.modalbox{background:white;border-radius:16px;padding:18px;width:min(650px,100%);max-height:90vh;overflow:auto}.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.notice{padding:11px;border-radius:10px;background:#eff6ff;margin:10px 0}.error{background:#fee2e2;color:#991b1b}.success{background:#dcfce7;color:#166534}
 #login{position:fixed;inset:0;background:#f3f4f6;z-index:30;display:flex;align-items:center;justify-content:center;padding:18px}.loginbox{background:white;padding:22px;border-radius:18px;width:min(430px,100%);box-shadow:0 10px 40px #0002}.hidden{display:none!important}
-.sale-head{display:grid;grid-template-columns:minmax(220px,1fr) 110px 140px 42px;gap:8px;padding:0 10px 6px;font-size:12px;font-weight:700;color:#6b7280}.sale-line{display:grid;grid-template-columns:minmax(220px,1fr) 110px 140px 42px;gap:8px;align-items:center;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;margin-bottom:8px;background:#fafafa}.sale-line input,.sale-line select{width:100%}.sale-total{text-align:right;font-size:21px;font-weight:800;margin:14px 0}@media(max-width:700px){.sale-head{grid-template-columns:1fr 90px 120px 40px}.sale-line{grid-template-columns:1fr 90px 120px 40px}}.price-cell{display:flex;gap:5px}.price-cell .sale-price{min-width:0;flex:1}.price-btn{padding:9px 8px;font-size:12px}.purchase-total{font-weight:800}.purchase-kpis .card{margin:0}.purchase-kpis{grid-template-columns:repeat(2,minmax(150px,1fr))}@media(max-width:700px){.purchase-kpis{grid-template-columns:1fr}}@media(max-width:700px){.price-cell{flex-direction:column}.price-btn{width:100%}}.kardex-badge{font-size:12px;padding:4px 7px;border-radius:999px;background:#eef2f7}.kardex-entry{font-weight:700}.kardex-exit{font-weight:700}@media(max-width:700px){.tablewrap{overflow-x:auto}} </style><meta name="tienda-build" content="V13.3.1-KARDEX-FIX">
+.sale-head{display:grid;grid-template-columns:minmax(220px,1fr) 110px 140px 42px;gap:8px;padding:0 10px 6px;font-size:12px;font-weight:700;color:#6b7280}.sale-line{display:grid;grid-template-columns:minmax(220px,1fr) 110px 140px 42px;gap:8px;align-items:center;border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;margin-bottom:8px;background:#fafafa}.sale-line input,.sale-line select{width:100%}.sale-total{text-align:right;font-size:21px;font-weight:800;margin:14px 0}@media(max-width:700px){.sale-head{grid-template-columns:1fr 90px 120px 40px}.sale-line{grid-template-columns:1fr 90px 120px 40px}}.price-cell{display:flex;gap:5px}.price-cell .sale-price{min-width:0;flex:1}.price-btn{padding:9px 8px;font-size:12px}.purchase-total{font-weight:800}.purchase-kpis .card{margin:0}.purchase-kpis{grid-template-columns:repeat(2,minmax(150px,1fr))}@media(max-width:700px){.purchase-kpis{grid-template-columns:1fr}}@media(max-width:700px){.price-cell{flex-direction:column}.price-btn{width:100%}}.kardex-badge{font-size:12px;padding:4px 7px;border-radius:999px;background:#eef2f7}.kardex-entry{font-weight:700}.kardex-exit{font-weight:700}@media(max-width:700px){.tablewrap{overflow-x:auto}} </style><meta name="tienda-build" content="V14-DASHBOARD">
 </head><body>
-<div id="login"><div class="loginbox"><h2>🛒 Tienda V13.4.1 — Kardex</h2><p class="muted">Base de datos central en Supabase</p>
+<div id="login"><div class="loginbox"><h2>🛒 Tienda V14.1 — Kardex</h2><p class="muted">Base de datos central en Supabase</p>
 <div id="cfgNotice" class="notice">Primero configura la URL y la clave publicable de tu proyecto Supabase.</div>
 <label>Supabase URL</label><input id="cfgUrl" placeholder="https://xxxxx.supabase.co">
 <label style="display:block;margin-top:8px">Publishable key</label><input id="cfgKey" placeholder="sb_publishable_..." type="password">
@@ -23,11 +23,23 @@ table{width:100%;border-collapse:collapse;background:white}th,td{padding:9px;bor
 <div class="toolbar" style="margin-top:10px"><button class="action" onclick="login()">Entrar</button><button class="action light" onclick="signup()">Crear usuario</button></div>
 <div id="loginMsg" class="notice hidden"></div></div></div>
 
-<header><h1>🛒 Tienda V13.3</h1><small id="status">Sin conexión</small></header>
+<header><h1>🛒 Tienda V14</h1><small id="status">Sin conexión</small></header>
 <nav id="nav"><button data-page="inicio">Inicio</button><button data-page="precios">Precios</button><button data-page="inventario">Inventario</button><button data-page="compras">Compras</button><button data-page="ventas">Ventas</button><button data-page="clientes">Clientes</button><button data-page="cuentas">Estado de cuenta</button><button data-page="proveedores">Proveedores</button><button onclick="logout()">Salir</button></nav>
 <main>
-<section id="inicio" class="page active"><div class="grid"><div class="card"><div class="muted">Productos</div><div id="kProducts" class="kpi">0</div></div><div class="card"><div class="muted">Existencias</div><div id="kStock" class="kpi">0</div></div><div class="card"><div class="muted">Ventas</div><div id="kSales" class="kpi">$0.00</div></div><div class="card"><div class="muted">Por cobrar</div><div id="kCredit" class="kpi">$0.00</div></div></div>
-<div class="card"><h3>V13 — Compras, inventario y Kardex</h3><p>Todos los módulos consultan la misma base de datos. Las ventas descuentan existencias y las compras las incrementan mediante operaciones transaccionales.</p><button class="action light" onclick="refreshAll()">🔄 Actualizar</button></div></section>
+<section id="inicio" class="page active">
+<div class="grid">
+<div class="card"><div class="muted">Productos</div><div id="kProducts" class="kpi">0</div></div>
+<div class="card"><div class="muted">Existencias</div><div id="kStock" class="kpi">0</div></div>
+<div class="card"><div class="muted">Ventas del día</div><div id="kSalesDay" class="kpi">$0.00</div><div class="muted" id="kSalesDayDate"></div></div>
+<div class="card"><div class="muted">Ventas acumuladas</div><div id="kSales" class="kpi">$0.00</div></div>
+<div class="card"><div class="muted">Utilidad del día</div><div id="kProfitDay" class="kpi">$0.00</div><div class="muted">Utilidad bruta</div></div>
+<div class="card"><div class="muted">Utilidad acumulada</div><div id="kProfit" class="kpi">$0.00</div><div class="muted">Utilidad bruta</div></div>
+<div class="card"><div class="muted">Por cobrar</div><div id="kCredit" class="kpi">$0.00</div></div>
+</div>
+<div class="card"><h3>Resumen de ventas y utilidad</h3>
+<p class="muted">Las ventas acumuladas y la utilidad se calculan con todas las ventas registradas. La utilidad es bruta: venta menos costo del producto.</p>
+<button class="action light" onclick="refreshAll()">🔄 Actualizar</button></div>
+</section>
 
 <section id="precios" class="page"><div class="card"><h2>Precios</h2><div class="toolbar"><input id="qP" placeholder="Buscar producto..." oninput="renderProducts()"><button class="action" onclick="newProduct()">+ Producto</button></div><div class="tablewrap"><table><thead><tr><th>No.</th><th>Descripción</th><th>Costo</th><th>Venta</th><th></th></tr></thead><tbody id="productsBody"></tbody></table></div></div></section>
 <section id="inventario" class="page"><div class="card"><h2>Inventario</h2><div class="toolbar"><input id="qI" placeholder="Buscar..." oninput="renderInventory()"><button class="action" onclick="newInventory()">+ Existencia</button></div><div class="tablewrap"><table><thead><tr><th>Producto</th><th>Existencia</th><th>Proveedor</th><th>Movimientos</th><th></th></tr></thead><tbody id="inventoryBody"></tbody></table></div></div></section>
@@ -57,7 +69,47 @@ async function signup(){if(!sb)initSupabase();if(!sb)return msg('Configura Supab
 async function logout(){if(sb)await sb.auth.signOut();location.reload();}
 async function startApp(){ $('login').classList.add('hidden');$('status').textContent='🟢 Conectado a Supabase'; await refreshAll(); go('inicio');}
 function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(p).classList.add('active');document.querySelectorAll('nav button[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===p));if(p==='precios')renderProducts();if(p==='inventario')renderInventory();if(p==='ventas')renderSales();if(p==='clientes')renderClients();if(p==='cuentas')renderAccounts();if(p==='proveedores')renderSuppliers();}
-async function refreshAll(){if(!sb)return;await Promise.all([renderProducts(),renderInventory(),renderPurchases(),renderSales(),renderClients(),renderAccounts(),renderSuppliers()]);const [p,i,s,a]=await Promise.all([sb.from('products').select('id'),sb.from('inventory').select('existencia'),sb.from('sales').select('total'),sb.from('account_balances').select('balance')]);$('kProducts').textContent=p.data?.length||0;$('kStock').textContent=(i.data||[]).reduce((x,r)=>x+Number(r.existencia||0),0);$('kSales').textContent=money((s.data||[]).reduce((x,r)=>x+Number(r.total||0),0));$('kCredit').textContent=money((a.data||[]).reduce((x,r)=>x+Number(r.balance||0),0));}
+async function refreshAll(){
+  if(!sb)return;
+  await Promise.all([renderProducts(),renderInventory(),renderPurchases(),renderSales(),renderClients(),renderAccounts(),renderSuppliers()]);
+  const [p,i,s,a]=await Promise.all([
+    sb.from('products').select('id').eq('activo',true),
+    sb.from('inventory').select('existencia'),
+    sb.from('sales').select('id,fecha,total,sale_items(cantidad,precio,costo)'),
+    sb.from('account_balances').select('balance')
+  ]);
+
+  $('kProducts').textContent=p.data?.length||0;
+  $('kStock').textContent=(i.data||[]).reduce((x,r)=>x+Number(r.existencia||0),0);
+
+  const sales=s.data||[];
+  const today=new Date();
+  const todayStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+
+  let salesAccum=0, salesDay=0, profitAccum=0, profitDay=0;
+
+  sales.forEach(v=>{
+    const total=Number(v.total||0);
+    salesAccum+=total;
+    if(v.fecha===todayStr) salesDay+=total;
+
+    (v.sale_items||[]).forEach(it=>{
+      const qty=Number(it.cantidad||0);
+      const price=Number(it.precio||0);
+      const cost=Number(it.costo||0);
+      const profit=(price-cost)*qty;
+      profitAccum+=profit;
+      if(v.fecha===todayStr) profitDay+=profit;
+    });
+  });
+
+  $('kSalesDay').textContent=money(salesDay);
+  $('kSalesDayDate').textContent='Hoy · '+todayStr;
+  $('kSales').textContent=money(salesAccum);
+  $('kProfitDay').textContent=money(profitDay);
+  $('kProfit').textContent=money(profitAccum);
+  $('kCredit').textContent=money((a.data||[]).reduce((x,r)=>x+Number(r.balance||0),0));
+}
 async function renderProducts(){if(!sb)return;let q=$('qP')?.value||'';let {data}=await sb.from('products').select('*').eq('activo',true).order('numero');if(q)data=(data||[]).filter(p=>(p.numero+' '+p.descripcion).toLowerCase().includes(q.toLowerCase()));$('productsBody').innerHTML=(data||[]).map(p=>`<tr><td>${p.numero}</td><td>${p.descripcion}</td><td>${money(p.costo)}</td><td>${money(p.precio)}</td><td><button class="action light" onclick="editProduct('${p.id}')">Editar</button></td></tr>`).join('');}
 async function renderPurchases(){
   if(!sb)return;
