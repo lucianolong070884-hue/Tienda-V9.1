@@ -1,7 +1,7 @@
 <!doctype html><html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#111827"><link rel="manifest" href="manifest.json">
-<title>Tienda V16 — Kardex</title>
+<title>Tienda V17.1 — Diseño móvil</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f3f4f6;color:#111827}
 header{background:#111827;color:white;padding:16px 18px;position:sticky;top:0;z-index:5}header h1{margin:0;font-size:21px}header small{opacity:.75}
@@ -44,10 +44,10 @@ table{width:100%;border-collapse:collapse;background:white}th,td{padding:9px;bor
 @media (min-width:601px) and (max-width:700px){
   .modalbox{width:100%;max-width:650px}
 }
- </style><meta name="tienda-build" content="V17-MOVIL">
+ </style><meta name="tienda-build" content="V17.1-MOVIL-DATOS">
 </head><body>
-<div id="login"><div class="loginbox"><h2>🛒 Tienda V15 — Kardex</h2><p class="muted">Base de datos central en Supabase</p>
-<div id="cfgNotice" class="notice">Primero configura la URL y la clave publicable de tu proyecto Supabase.</div>
+<div id="login"><div class="loginbox"><h2>🛒 Tienda V17.1 — Kardex</h2><p class="muted">Base de datos central en Supabase</p>
+<div id="cfgNotice" class="notice">Conecta esta versión con el mismo proyecto Supabase que usabas en la V16. Si cambiaste de dirección de GitHub, vuelve a capturar aquí la URL y la Publishable Key.</div>
 <label>Supabase URL</label><input id="cfgUrl" placeholder="https://xxxxx.supabase.co">
 <label style="display:block;margin-top:8px">Publishable key</label><input id="cfgKey" placeholder="sb_publishable_..." type="password">
 <div class="toolbar" style="margin-top:10px"><button class="action" onclick="saveConfig()">Conectar</button></div>
@@ -55,7 +55,7 @@ table{width:100%;border-collapse:collapse;background:white}th,td{padding:9px;bor
 <div class="toolbar" style="margin-top:10px"><button class="action" onclick="login()">Entrar</button><button class="action light" onclick="signup()">Crear usuario</button></div>
 <div id="loginMsg" class="notice hidden"></div></div></div>
 
-<header><h1>🛒 Tienda V14</h1><small id="status">Sin conexión</small></header>
+<header><h1>🛒 Tienda V17.1</h1><small id="status">Sin conexión</small></header>
 <nav id="nav"><button data-page="inicio">Inicio</button><button data-page="precios">Precios</button><button data-page="inventario">Inventario</button><button data-page="compras">Compras</button><button data-page="ventas">Ventas</button><button data-page="clientes">Clientes</button><button data-page="cuentas">Estado de cuenta</button><button data-page="proveedores">Proveedores</button><button onclick="logout()">Salir</button></nav>
 <main>
 <section id="inicio" class="page active">
@@ -101,18 +101,20 @@ table{width:100%;border-collapse:collapse;background:white}th,td{padding:9px;bor
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-let sb=null, purchaseEditingId=null, cfg=JSON.parse(localStorage.getItem('tienda_v9_cfg')||'null'), currentClient=null, editingSale=null;
+let sb=null, purchaseEditingId=null, currentClient=null, editingSale=null;
+let cfg=null;
+try{cfg=JSON.parse(localStorage.getItem('tienda_v9_cfg')||localStorage.getItem('tienda_cfg')||'null')}catch(e){cfg=null;}
 const $=id=>document.getElementById(id), money=n=>'$'+Number(n||0).toFixed(2);const numericNo=v=>{const n=Number(String(v??'').trim());return Number.isFinite(n)?n:999999999;};
 function sortByNumero(rows){return (rows||[]).sort((a,b)=>numericNo(a.numero)-numericNo(b.numero));}
 async function nextNumero(table){const {data,error}=await sb.from(table).select('numero').eq('activo',true);if(error)throw error;const nums=(data||[]).map(x=>parseInt(x.numero,10)).filter(Number.isFinite);return String((nums.length?Math.max(...nums):0)+1);}
 
 function msg(t,ok=false){$('loginMsg').textContent=t;$('loginMsg').className='notice '+(ok?'success':'error');}
 function saveConfig(){const url=$('cfgUrl').value.trim(),key=$('cfgKey').value.trim();if(!url||!key)return msg('Faltan URL y Publishable Key.');cfg={url,key};localStorage.setItem('tienda_v9_cfg',JSON.stringify(cfg));initSupabase();msg('Configuración guardada. Ahora entra con tu usuario.',true);}
-function initSupabase(){if(!cfg)return;sb=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true}});$('cfgUrl').value=cfg.url;$('cfgKey').value=cfg.key;sb.auth.getSession().then(({data})=>{if(data.session)startApp(data.session);});}
-async function login(){if(!sb)initSupabase();if(!sb)return msg('Configura Supabase primero.');const {error}=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(error)msg(error.message);}
+function initSupabase(){try{if(!cfg)return null;if(!window.supabase||!window.supabase.createClient){msg('No se pudo cargar la librería de Supabase. Revisa tu conexión a Internet.');return null;}sb=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true}});$('cfgUrl').value=cfg.url;$('cfgKey').value=cfg.key;sb.auth.getSession().then(({data,error})=>{if(error){console.error(error);msg('Error al recuperar la sesión: '+error.message);return;}if(data.session)startApp(data.session);});return sb;}catch(e){console.error(e);msg('Error de conexión con Supabase: '+e.message);return null;}}
+async function login(){if(!sb)initSupabase();if(!sb)return msg('Configura Supabase primero.');const {error}=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});if(error)msg(error.message);else msg('Acceso correcto. Cargando datos...',true);}
 async function signup(){if(!sb)initSupabase();if(!sb)return msg('Configura Supabase primero.');const {error}=await sb.auth.signUp({email:$('email').value,password:$('password').value});if(error)msg(error.message);else msg('Usuario creado. Revisa tu correo si la confirmación está activada.',true);}
 async function logout(){if(sb)await sb.auth.signOut();location.reload();}
-async function startApp(){ $('login').classList.add('hidden');$('status').textContent='🟢 Conectado a Supabase'; await refreshAll(); go('inicio');}
+async function startApp(){ try{$('login').classList.add('hidden');$('status').textContent='🟡 Conectando a Supabase…';await refreshAll();$('status').textContent='🟢 Conectado a Supabase';go('inicio');}catch(e){console.error(e);$('status').textContent='🔴 Error al cargar datos';$('login').classList.remove('hidden');msg('Supabase conectó, pero no se pudieron cargar los datos: '+(e.message||e));}}
 function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));$(p).classList.add('active');document.querySelectorAll('nav button[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===p));if(p==='precios')renderProducts();if(p==='inventario')renderInventory();if(p==='ventas')renderSales();if(p==='clientes')renderClients();if(p==='cuentas')renderAccounts();if(p==='proveedores')renderSuppliers();}
 async function refreshAll(){
   if(!sb)return;
